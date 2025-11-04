@@ -5,13 +5,11 @@ import { UpdateBatchDto } from './dto/update-batch.dto';
 
 @Injectable()
 export class BatchesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) {}
 
-  // Criar um novo lote
   async create(createBatchDto: CreateBatchDto) {
     const { productId, quantity, expiration } = createBatchDto;
 
-    // Verificar se o produto existe
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
     });
@@ -21,7 +19,6 @@ export class BatchesService {
       );
     }
 
-    // Criar o batch
     return this.prisma.batch.create({
       data: {
         productId,
@@ -32,7 +29,6 @@ export class BatchesService {
     });
   }
 
-  // Listar todos os batches
   findAll() {
     return this.prisma.batch.findMany({
       include: { product: true },
@@ -40,7 +36,6 @@ export class BatchesService {
     });
   }
 
-  // Buscar batch por id
   async findOne(id: number) {
     const batch = await this.prisma.batch.findUnique({
       where: { id },
@@ -52,7 +47,6 @@ export class BatchesService {
     return batch;
   }
 
-  // Atualizar batch
   async update(id: number, updateBatchDto: UpdateBatchDto) {
     const batch = await this.prisma.batch.findUnique({ where: { id } });
     if (!batch) {
@@ -66,7 +60,6 @@ export class BatchesService {
     });
   }
 
-  // Remover batch
   async remove(id: number) {
     const batch = await this.prisma.batch.findUnique({ where: { id } });
     if (!batch) {

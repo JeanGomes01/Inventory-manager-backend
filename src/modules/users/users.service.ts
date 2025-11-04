@@ -1,13 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { Injectable } from '@nestjs/common';
 import bcrypt from 'bcrypt';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaClient) {}
+  constructor(private prisma: PrismaService) {}
   async create(createUserDto: CreateUserDto) {
-    const { email, password, role } = createUserDto;
+    const { email, password } = createUserDto;
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -15,7 +15,6 @@ export class UsersService {
       data: {
         email,
         password: hashedPassword,
-        role,
       },
     });
 
@@ -27,19 +26,29 @@ export class UsersService {
       select: {
         id: true,
         email: true,
-        role: true,
+        password: true,
       },
     });
   }
 
-  async findOne(id: number) {
-    const user = await this.prisma.user.findUnique({
+  async findById(id: number): Promise<{ id: number; email: string } | null> {
+    return this.prisma.user.findUnique({
       where: { id },
-      select: { id: true, email: true, role: true },
+      select: { id: true, email: true },
     });
+  }
 
-    if (!user) throw new NotFoundException(`User with id ${id} not found`);
-    return user;
+  async findByEmail(
+    email: string,
+  ): Promise<{ id: number; email: string; password: string } | null> {
+    return this.prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        password: true,
+      },
+    });
   }
 
   async update(id: number, updateUserDto: UpdateUserDto) {
@@ -54,7 +63,7 @@ export class UsersService {
     const updatedUser = await this.prisma.user.update({
       where: { id },
       data,
-      select: { id: true, email: true, role: true },
+      select: { id: true, email: true },
     });
     return updatedUser;
   }

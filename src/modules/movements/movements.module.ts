@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
-import { MovementsService } from './movements.service';
+import { PrismaModule } from 'src/prisma/prisma.module';
 import { MovementsController } from './movements.controller';
+import { MovementsService } from './movements.service';
 
 @Module({
+  imports: [PrismaModule],
   controllers: [MovementsController],
   providers: [MovementsService],
 })
