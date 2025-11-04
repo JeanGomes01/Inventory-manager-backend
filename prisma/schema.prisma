@@ -1,0 +1,73 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       Int    @id @default(autoincrement())
+  email    String @unique
+  password String
+  role     String
+}
+
+model Client {
+  id       Int       @id @default(autoincrement())
+  name     String
+  products Product[]
+  Sales    Sales[]
+}
+
+model Category {
+  id       Int       @id @default(autoincrement())
+  name     String
+  products Product[]
+}
+
+model Movements {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  quantity  Int
+  type      String
+  date      DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id])
+}
+
+model Sales {
+  id       Int      @id @default(autoincrement())
+  clientId Int
+  date     DateTime @default(now())
+  total    Float
+  client   Client   @relation(fields: [clientId], references: [id])
+}
+
+model Product {
+  id          Int         @id @default(autoincrement())
+  name        String
+  description String?
+  quantity    Int
+  price       Float?
+  batches     Batch[]
+  Client      Client?     @relation(fields: [clientId], references: [id])
+  clientId    Int?
+  Category    Category?   @relation(fields: [categoryId], references: [id])
+  categoryId  Int?
+  Movements   Movements[]
+}
+
+model Batch {
+  id         Int      @id @default(autoincrement())
+  productId  Int
+  quantity   Int
+  expiration DateTime
+  product    Product  @relation(fields: [productId], references: [id])
+}
