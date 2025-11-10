@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "Product" ADD COLUMN     "categoryId" INTEGER,
+ADD COLUMN     "clientId" INTEGER,
+ALTER COLUMN "quantity" DROP DEFAULT,
+ALTER COLUMN "price" DROP DEFAULT;

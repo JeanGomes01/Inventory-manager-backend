@@ -19,54 +19,22 @@ model User {
   password String
 }
 
-model Client {
-  id       Int       @id @default(autoincrement())
-  name     String
-  products Product[]
-  Sales    Sales[]
-}
-
-model Category {
-  id       Int       @id @default(autoincrement())
-  name     String
-  products Product[]
-}
-
-model Movements {
-  id        Int      @id @default(autoincrement())
-  productId Int
-  quantity  Int
-  type      String
-  date      DateTime @default(now())
-  product   Product  @relation(fields: [productId], references: [id])
-}
-
-model Sales {
-  id       Int      @id @default(autoincrement())
-  clientId Int
-  date     DateTime @default(now())
-  total    Float
-  client   Client   @relation(fields: [clientId], references: [id])
-}
-
 model Product {
-  id          Int         @id @default(autoincrement())
+  id          Int        @id @default(autoincrement())
   name        String
   description String?
   quantity    Int
-  price       Float?
-  batches     Batch[]
-  Client      Client?     @relation(fields: [clientId], references: [id])
+  price       Float
   clientId    Int?
-  Category    Category?   @relation(fields: [categoryId], references: [id])
   categoryId  Int?
-  Movements   Movements[]
+  movements   Movement[]
 }
 
-model Batch {
-  id         Int      @id @default(autoincrement())
-  productId  Int
-  quantity   Int
-  expiration DateTime
-  product    Product  @relation(fields: [productId], references: [id])
+model Movement {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  type      String
+  quantity  Int
+  createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id])
 }

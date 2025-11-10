@@ -9,25 +9,31 @@ import { UpdateMovementDto } from './dto/update-movement.dto';
 
 @Injectable()
 export class MovementsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) {}
 
-  async create(createMovementDto: CreateMovementDto) {
-    const { productId, quantity, type } = createMovementDto;
+  async create(data: CreateMovementDto) {
+    const { productId, quantity, type } = data;
 
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
     });
-    if (!product)
-      throw new NotFoundException(`Produto ${productId} não encontrado`);
 
-    if (type.toLowerCase() === 'entrada') {
+    if (!product) {
+      throw new NotFoundException(`Produto ${productId} não encontrado`);
+    }
+
+    const movementType = type.toLowerCase();
+
+    if (movementType === 'entrada') {
       await this.prisma.product.update({
         where: { id: productId },
         data: { quantity: { increment: quantity } },
       });
-    } else if (type.toLowerCase() === 'saida') {
-      if (product.quantity < quantity)
-        throw new BadRequestException('Quantidade insuficiente');
+    } else if (movementType === 'saida') {
+      if (product.quantity < quantity) {
+        throw new BadRequestException('Quantidade insuficiente em estoque');
+      }
+
       await this.prisma.product.update({
         where: { id: productId },
         data: { quantity: { decrement: quantity } },
@@ -36,50 +42,66 @@ export class MovementsService {
       throw new BadRequestException("Tipo inválido. Use 'entrada' ou 'saida'");
     }
 
-    return this.prisma.movements.create({
-      data: { productId, quantity, type },
+    return this.prisma.movement.create({
+      data: { productId, quantity, type: movementType },
+      include: { product: true },
     });
   }
 
   findAll() {
-    return this.prisma.movements.findMany({ orderBy: { date: 'desc' } });
+    return this.prisma.movement.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: { product: true },
+    });
   }
 
   async findOne(id: number) {
-    const movement = await this.prisma.movements.findUnique({ where: { id } });
-    if (!movement)
+    const movement = await this.prisma.movement.findUnique({
+      where: { id },
+      include: { product: true },
+    });
+
+    if (!movement) {
       throw new NotFoundException(`Movimento ${id} não encontrado`);
+    }
+
     return movement;
   }
 
-  async update(id: number, updateMovementDto: UpdateMovementDto) {
-    const movement = await this.prisma.movements.findUnique({ where: { id } });
-    if (!movement)
+  async update(id: number, data: UpdateMovementDto) {
+    const movement = await this.prisma.movement.findUnique({ where: { id } });
+
+    if (!movement) {
       throw new NotFoundException(`Movimento ${id} não encontrado`);
-    return this.prisma.movements.update({
+    }
+
+    return this.prisma.movement.update({
       where: { id },
-      data: updateMovementDto,
+      data,
     });
   }
 
   async remove(id: number) {
-    const movement = await this.prisma.movements.findUnique({ where: { id } });
-    if (!movement)
-      throw new NotFoundException(`Movimento ${id} não encontrado`);
+    const movement = await this.prisma.movement.findUnique({ where: { id } });
 
-    // desfaz alteração no estoque
-    if (movement.type.toLowerCase() === 'entrada') {
+    if (!movement) {
+      throw new NotFoundException(`Movimento ${id} não encontrado`);
+    }
+
+    const movementType = movement.type.toLowerCase();
+
+    if (movementType === 'entrada') {
       await this.prisma.product.update({
         where: { id: movement.productId },
         data: { quantity: { decrement: movement.quantity } },
       });
-    } else if (movement.type.toLowerCase() === 'saida') {
+    } else if (movementType === 'saida') {
       await this.prisma.product.update({
         where: { id: movement.productId },
         data: { quantity: { increment: movement.quantity } },
       });
     }
 
-    return this.prisma.movements.delete({ where: { id } });
+    return this.prisma.movement.delete({ where: { id } });
   }
 }
