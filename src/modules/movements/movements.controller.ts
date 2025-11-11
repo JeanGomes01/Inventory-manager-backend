@@ -38,6 +38,11 @@ export class MovementsController {
     return this.movementsService.update(+id, updateMovementDto);
   }
 
+  @Delete()
+  removeAll() {
+    return this.movementsService.removeAll();
+  }
+
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.movementsService.remove(+id);

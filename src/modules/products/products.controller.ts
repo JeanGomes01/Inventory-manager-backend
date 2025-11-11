@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -35,8 +36,17 @@ export class ProductsController {
     return this.productsService.update(+id, updateProductDto);
   }
 
+  @Delete('all')
+  removeAll() {
+    return this.productsService.removeAll();
+  }
+
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.productsService.remove(+id);
+    const parsedId = Number(id);
+    if (isNaN(parsedId)) {
+      throw new BadRequestException('ID inválido');
+    }
+    return this.productsService.remove(parsedId);
   }
 }

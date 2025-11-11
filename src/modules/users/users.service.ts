@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import bcrypt from 'bcrypt';
+import * as bcrypt from 'bcrypt';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -11,12 +11,13 @@ export class UsersService {
     private jwtService: JwtService,
   ) {}
   async create(createUserDto: CreateUserDto) {
-    const { email, password } = createUserDto;
+    const { name, email, password } = createUserDto;
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await this.prisma.user.create({
       data: {
+        name,
         email,
         password: hashedPassword,
       },
@@ -25,15 +26,20 @@ export class UsersService {
     const payload = { sub: user.id, email: user.email };
     const accessToken = this.jwtService.sign(payload);
 
-    return { id: user.id, email: user.email, accessToken: accessToken };
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      accessToken: accessToken,
+    };
   }
 
   async findAll() {
     return this.prisma.user.findMany({
       select: {
         id: true,
+        name: true,
         email: true,
-        password: true,
       },
     });
   }
@@ -45,13 +51,17 @@ export class UsersService {
     });
   }
 
-  async findByEmail(
-    email: string,
-  ): Promise<{ id: number; email: string; password: string } | null> {
+  async findByEmail(email: string): Promise<{
+    id: number;
+    name: string;
+    email: string;
+    password: string;
+  } | null> {
     return this.prisma.user.findUnique({
       where: { email },
       select: {
         id: true,
+        name: true,
         email: true,
         password: true,
       },

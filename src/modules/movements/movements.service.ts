@@ -31,7 +31,7 @@ export class MovementsService {
       });
     } else if (movementType === 'saida') {
       if (product.quantity < quantity) {
-        throw new BadRequestException('Quantidade insuficiente em estoque');
+        throw new BadRequestException('Quantidade insuficient em estoque');
       }
 
       await this.prisma.product.update({
@@ -103,5 +103,28 @@ export class MovementsService {
     }
 
     return this.prisma.movement.delete({ where: { id } });
+  }
+
+  async removeAll() {
+    // Pega todas as movimentações
+    const movements = await this.prisma.movement.findMany();
+
+    // Reverte o efeito no estoque de cada movimento
+    for (const movement of movements) {
+      const type = movement.type.toLowerCase();
+      if (type === 'entrada') {
+        await this.prisma.product.update({
+          where: { id: movement.productId },
+          data: { quantity: { decrement: movement.quantity } },
+        });
+      } else if (type === 'saida') {
+        await this.prisma.product.update({
+          where: { id: movement.productId },
+          data: { quantity: { increment: movement.quantity } },
+        });
+      }
+    }
+
+    return this.prisma.movement.deleteMany();
   }
 }
