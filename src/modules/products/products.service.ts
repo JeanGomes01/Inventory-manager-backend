@@ -12,6 +12,8 @@ export class ProductsService {
   ) {}
 
   async create(data: CreateProductDto, userId: number) {
+    console.log('Criando produto:', data);
+
     const product = await this.prisma.product.create({
       data: {
         user: {
@@ -19,21 +21,19 @@ export class ProductsService {
         },
         name: data.name,
         description: data.description,
-        quantity: data.quantity,
         price: data.price,
+        quantity: 0,
       },
     });
 
-    if (data.quantity > 0) {
-      await this.movementsService.create({
-        userId,
-        productId: product.id,
-        quantity: data.quantity,
-        type: 'entrada',
-      });
-    }
+    const updated = await this.prisma.product.update({
+      where: { id: product.id },
+      data: { quantity: data.quantity },
+      include: { movements: true },
+    });
+    console.log('Produto criado com quantidade:', updated.quantity);
 
-    return product;
+    return updated;
   }
 
   findAll(userId: number) {
@@ -49,9 +49,17 @@ export class ProductsService {
     });
   }
 
-  update(id: number, updateProductDto: UpdateProductDto, userId: number) {
-    return this.prisma.product.updateMany({
+  async update(id: number, updateProductDto: UpdateProductDto, userId: number) {
+    const product = await this.prisma.product.findFirst({
       where: { id, userId },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Produto não encontrado.');
+    }
+
+    return this.prisma.product.update({
+      where: { id },
       data: updateProductDto,
     });
   }

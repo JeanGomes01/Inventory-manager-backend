@@ -31,6 +31,7 @@ export class MovementsService {
         where: { id: productId },
         data: { quantity: { increment: quantity } },
       });
+      console.log('Movimento criado:', data);
     } else if (movementType === 'saida') {
       if (product.quantity < quantity) {
         throw new BadRequestException('Quantidade insuficiente em estoque');
