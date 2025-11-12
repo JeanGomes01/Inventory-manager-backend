@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -6,45 +7,60 @@ import {
   Param,
   Patch,
   Post,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { CreateMovementDto } from './dto/create-movement.dto';
 import { UpdateMovementDto } from './dto/update-movement.dto';
 import { MovementsService } from './movements.service';
 
+@UseGuards(AuthGuard('jwt'))
 @Controller('movements')
 export class MovementsController {
   constructor(private readonly movementsService: MovementsService) {}
 
   @Post()
-  create(@Body() createMovementDto: CreateMovementDto) {
-    return this.movementsService.create(createMovementDto);
+  create(@Body() createMovementDto: CreateMovementDto, @Req() req) {
+    const userId = (req.user as { id: number }).id;
+    return this.movementsService.create({ ...createMovementDto, userId });
   }
 
   @Get()
-  findAll() {
-    return this.movementsService.findAll();
+  findAll(@Req() req) {
+    const userId = (req.user as { id: number }).id;
+    return this.movementsService.findAll(userId);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.movementsService.findOne(+id);
+  findOne(@Param('id') id: string, @Req() req) {
+    const userId = (req.user as { id: number }).id;
+    return this.movementsService.findOne(+id, userId);
   }
 
   @Patch(':id')
   update(
     @Param('id') id: string,
     @Body() updateMovementDto: UpdateMovementDto,
+    @Req() req,
   ) {
-    return this.movementsService.update(+id, updateMovementDto);
-  }
-
-  @Delete()
-  removeAll() {
-    return this.movementsService.removeAll();
+    const userId = (req.user as { id: number }).id;
+    return this.movementsService.update(+id, updateMovementDto, userId);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.movementsService.remove(+id);
+  remove(@Param('id') id: string, @Req() req) {
+    const parsedId = Number(id);
+    if (isNaN(parsedId)) {
+      throw new BadRequestException('ID inválido');
+    }
+    const userId = (req.user as { id: number }).id;
+    return this.movementsService.remove(parsedId, userId);
+  }
+
+  @Delete()
+  removeAll(@Req() req) {
+    const userId = (req.user as { id: number }).id;
+    return this.movementsService.removeAll(userId);
   }
 }

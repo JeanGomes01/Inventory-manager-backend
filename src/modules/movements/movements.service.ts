@@ -12,14 +12,16 @@ export class MovementsService {
   constructor(private prisma: PrismaService) {}
 
   async create(data: CreateMovementDto) {
-    const { productId, quantity, type } = data;
+    const { productId, quantity, type, userId } = data;
 
-    const product = await this.prisma.product.findUnique({
-      where: { id: productId },
+    const product = await this.prisma.product.findFirst({
+      where: { id: productId, userId },
     });
 
     if (!product) {
-      throw new NotFoundException(`Produto ${productId} não encontrado`);
+      throw new NotFoundException(
+        `Produto ${productId} não encontrado para o usuário.`,
+      );
     }
 
     const movementType = type.toLowerCase();
@@ -31,9 +33,8 @@ export class MovementsService {
       });
     } else if (movementType === 'saida') {
       if (product.quantity < quantity) {
-        throw new BadRequestException('Quantidade insuficient em estoque');
+        throw new BadRequestException('Quantidade insuficiente em estoque');
       }
-
       await this.prisma.product.update({
         where: { id: productId },
         data: { quantity: { decrement: quantity } },
@@ -43,36 +44,43 @@ export class MovementsService {
     }
 
     return this.prisma.movement.create({
-      data: { productId, quantity, type: movementType },
+      data: { userId, productId, quantity, type: movementType },
       include: { product: true },
     });
   }
 
-  findAll() {
+  findAll(userId: number) {
     return this.prisma.movement.findMany({
+      where: { userId },
       orderBy: { createdAt: 'desc' },
       include: { product: true },
     });
   }
 
-  async findOne(id: number) {
-    const movement = await this.prisma.movement.findUnique({
-      where: { id },
+  async findOne(id: number, userId: number) {
+    const movement = await this.prisma.movement.findFirst({
+      where: { id, userId },
       include: { product: true },
     });
 
     if (!movement) {
-      throw new NotFoundException(`Movimento ${id} não encontrado`);
+      throw new NotFoundException(
+        `Movimento ${id} não encontrado para o usuário.`,
+      );
     }
 
     return movement;
   }
 
-  async update(id: number, data: UpdateMovementDto) {
-    const movement = await this.prisma.movement.findUnique({ where: { id } });
+  async update(id: number, data: UpdateMovementDto, userId: number) {
+    const movement = await this.prisma.movement.findFirst({
+      where: { id, userId },
+    });
 
     if (!movement) {
-      throw new NotFoundException(`Movimento ${id} não encontrado`);
+      throw new NotFoundException(
+        `Movimento ${id} não encontrado para o usuário.`,
+      );
     }
 
     return this.prisma.movement.update({
@@ -81,11 +89,15 @@ export class MovementsService {
     });
   }
 
-  async remove(id: number) {
-    const movement = await this.prisma.movement.findUnique({ where: { id } });
+  async remove(id: number, userId: number) {
+    const movement = await this.prisma.movement.findFirst({
+      where: { id, userId },
+    });
 
     if (!movement) {
-      throw new NotFoundException(`Movimento ${id} não encontrado`);
+      throw new NotFoundException(
+        `Movimento ${id} não encontrado para o usuário.`,
+      );
     }
 
     const movementType = movement.type.toLowerCase();
@@ -105,11 +117,11 @@ export class MovementsService {
     return this.prisma.movement.delete({ where: { id } });
   }
 
-  async removeAll() {
-    // Pega todas as movimentações
-    const movements = await this.prisma.movement.findMany();
+  async removeAll(userId: number) {
+    const movements = await this.prisma.movement.findMany({
+      where: { userId },
+    });
 
-    // Reverte o efeito no estoque de cada movimento
     for (const movement of movements) {
       const type = movement.type.toLowerCase();
       if (type === 'entrada') {
@@ -117,7 +129,7 @@ export class MovementsService {
           where: { id: movement.productId },
           data: { quantity: { decrement: movement.quantity } },
         });
-      } else if (type === 'saida') {
+      } else {
         await this.prisma.product.update({
           where: { id: movement.productId },
           data: { quantity: { increment: movement.quantity } },
@@ -125,6 +137,6 @@ export class MovementsService {
       }
     }
 
-    return this.prisma.movement.deleteMany();
+    return this.prisma.movement.deleteMany({ where: { userId } });
   }
 }

@@ -7,46 +7,59 @@ import {
   Param,
   Patch,
   Post,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductsService } from './products.service';
 
+@UseGuards(AuthGuard('jwt'))
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Post()
-  create(@Body() createProductDto: CreateProductDto) {
-    return this.productsService.create(createProductDto);
+  create(@Body() createProductDto: CreateProductDto, @Req() req) {
+    const userId = (req.user as { id: number }).id;
+    return this.productsService.create(createProductDto, userId);
   }
 
   @Get()
-  findAll() {
-    return this.productsService.findAll();
+  findAll(@Req() req) {
+    const userId = (req.user as { id: number }).id;
+    return this.productsService.findAll(userId);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.productsService.findOne(+id);
+  findOne(@Param('id') id: string, @Req() req) {
+    const userId = (req.user as { id: number }).id;
+    return this.productsService.findOne(+id, userId);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
-    return this.productsService.update(+id, updateProductDto);
+  update(
+    @Param('id') id: string,
+    @Body() updateProductDto: UpdateProductDto,
+    @Req() req,
+  ) {
+    const userId = (req.user as { id: number }).id;
+    return this.productsService.update(+id, updateProductDto, userId);
   }
-
   @Delete('all')
-  removeAll() {
-    return this.productsService.removeAll();
+  removeAll(@Req() req) {
+    const userId = (req.user as { id: number }).id;
+    return this.productsService.removeAll(userId);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
+  remove(@Param('id') id: string, @Req() req) {
     const parsedId = Number(id);
     if (isNaN(parsedId)) {
       throw new BadRequestException('ID inválido');
     }
-    return this.productsService.remove(parsedId);
+    const userId = (req.user as { id: number }).id;
+    return this.productsService.remove(parsedId, userId);
   }
 }
