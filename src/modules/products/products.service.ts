@@ -10,15 +10,10 @@ export class ProductsService {
     private prisma: PrismaService,
     private movementsService: MovementsService,
   ) {}
-
   async create(data: CreateProductDto, userId: number) {
-    console.log('Criando produto:', data);
-
     const product = await this.prisma.product.create({
       data: {
-        user: {
-          connect: { id: userId },
-        },
+        userId,
         name: data.name,
         description: data.description,
         price: data.price,
@@ -26,14 +21,19 @@ export class ProductsService {
       },
     });
 
-    const updated = await this.prisma.product.update({
+    if (data.quantity > 0) {
+      await this.movementsService.create({
+        userId,
+        productId: product.id,
+        quantity: data.quantity,
+        type: 'entrada',
+      });
+    }
+
+    return this.prisma.product.findUnique({
       where: { id: product.id },
-      data: { quantity: data.quantity },
       include: { movements: true },
     });
-    console.log('Produto criado com quantidade:', updated.quantity);
-
-    return updated;
   }
 
   findAll(userId: number) {

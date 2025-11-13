@@ -14,14 +14,16 @@ export class MovementsService {
   async create(data: CreateMovementDto) {
     const { productId, quantity, type, userId } = data;
 
-    const product = await this.prisma.product.findFirst({
-      where: { id: productId, userId },
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
     });
 
     if (!product) {
-      throw new NotFoundException(
-        `Produto ${productId} não encontrado para o usuário.`,
-      );
+      throw new NotFoundException(`Produto ${productId} não encontrado.`);
+    }
+
+    if (product.userId !== userId) {
+      throw new BadRequestException('Este produto não pertence ao usuário.');
     }
 
     const movementType = type.toLowerCase();
@@ -31,7 +33,6 @@ export class MovementsService {
         where: { id: productId },
         data: { quantity: { increment: quantity } },
       });
-      console.log('Movimento criado:', data);
     } else if (movementType === 'saida') {
       if (product.quantity < quantity) {
         throw new BadRequestException('Quantidade insuficiente em estoque');
