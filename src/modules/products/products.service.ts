@@ -54,11 +54,16 @@ export class ProductsService {
     };
   }
 
-  findAll(userId: number) {
-    return this.prisma.product.findMany({
+  async findAll(userId: number) {
+    const products = await this.prisma.product.findMany({
       where: { userId },
       include: { movements: true, category: true },
     });
+
+    return products.map((p) => ({
+      ...p,
+      category: p.category?.name ?? null,
+    }));
   }
 
   findOne(id: number, userId: number) {
