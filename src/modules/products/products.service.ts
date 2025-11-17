@@ -48,13 +48,16 @@ export class ProductsService {
       });
     }
 
-    return product;
+    return {
+      ...product,
+      category: product.category?.name ?? null,
+    };
   }
 
   findAll(userId: number) {
     return this.prisma.product.findMany({
       where: { userId },
-      include: { movements: true },
+      include: { movements: true, category: true },
     });
   }
 
@@ -92,11 +95,16 @@ export class ProductsService {
     delete dataToUpdate.category;
     if (categoryId !== undefined) dataToUpdate.categoryId = categoryId;
 
-    return this.prisma.product.update({
+    const updated = await this.prisma.product.update({
       where: { id },
       data: dataToUpdate,
       include: { movements: true, category: true },
     });
+
+    return {
+      ...updated,
+      category: updated.category?.name ?? null,
+    };
   }
 
   async remove(id: number, userId: number) {
