@@ -11,6 +11,22 @@ export class ProductsService {
     private movementsService: MovementsService,
   ) {}
   async create(data: CreateProductDto, userId: number) {
+    let categoryId: number | undefined;
+
+    if (data.category) {
+      let category = await this.prisma.category.findUnique({
+        where: { name: data.category },
+      });
+
+      if (!category) {
+        category = await this.prisma.category.create({
+          data: { name: data.category },
+        });
+      }
+
+      categoryId = category.id;
+    }
+
     const product = await this.prisma.product.create({
       data: {
         userId,
@@ -18,7 +34,9 @@ export class ProductsService {
         description: data.description,
         price: data.price,
         quantity: 0,
+        categoryId,
       },
+      include: { movements: true, category: true },
     });
 
     if (data.quantity > 0) {
@@ -30,10 +48,7 @@ export class ProductsService {
       });
     }
 
-    return this.prisma.product.findUnique({
-      where: { id: product.id },
-      include: { movements: true },
-    });
+    return product;
   }
 
   findAll(userId: number) {
@@ -58,9 +73,29 @@ export class ProductsService {
       throw new NotFoundException('Produto não encontrado.');
     }
 
+    let categoryId: number | undefined;
+    if (updateProductDto.category) {
+      let category = await this.prisma.category.findUnique({
+        where: { name: updateProductDto.category },
+      });
+
+      if (!category) {
+        category = await this.prisma.category.create({
+          data: { name: updateProductDto.category },
+        });
+      }
+
+      categoryId = category.id;
+    }
+
+    const dataToUpdate: any = { ...updateProductDto };
+    delete dataToUpdate.category;
+    if (categoryId !== undefined) dataToUpdate.categoryId = categoryId;
+
     return this.prisma.product.update({
       where: { id },
-      data: updateProductDto,
+      data: dataToUpdate,
+      include: { movements: true, category: true },
     });
   }
 

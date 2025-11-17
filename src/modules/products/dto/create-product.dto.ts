@@ -13,6 +13,11 @@ export class CreateProductDto {
   description?: string;
 
   @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  category: string;
+
+  @ApiProperty()
   @IsNumber()
   @IsNotEmpty()
   quantity: number;

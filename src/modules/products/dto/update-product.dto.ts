@@ -14,6 +14,11 @@ export class UpdateProductDto extends PartialType(CreateProductDto) {
   description?: string;
 
   @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  category?: string;
+
+  @ApiProperty({ required: false })
   @IsNumber()
   @IsOptional()
   quantity?: number;
