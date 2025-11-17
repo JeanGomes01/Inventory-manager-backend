@@ -47,6 +47,7 @@ export class ProductsController {
     const userId = (req.user as { id: number }).id;
     return this.productsService.update(+id, updateProductDto, userId);
   }
+
   @Delete('all')
   removeAll(@Req() req) {
     const userId = (req.user as { id: number }).id;
