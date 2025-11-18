@@ -1,8 +1,6 @@
 import {
-  BadRequestException,
   Body,
   Controller,
-  Delete,
   Get,
   Param,
   Patch,
@@ -48,21 +46,5 @@ export class MovementsController {
   ) {
     const userId = (req.user as { id: number }).id;
     return this.movementsService.update(+id, updateMovementDto, userId);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string, @Req() req) {
-    const parsedId = Number(id);
-    if (isNaN(parsedId)) {
-      throw new BadRequestException('ID inválido');
-    }
-    const userId = (req.user as { id: number }).id;
-    return this.movementsService.remove(parsedId, userId);
-  }
-
-  @Delete()
-  removeAll(@Req() req) {
-    const userId = (req.user as { id: number }).id;
-    return this.movementsService.removeAll(userId);
   }
 }

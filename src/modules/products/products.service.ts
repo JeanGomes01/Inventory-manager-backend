@@ -1,15 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { MovementsService } from '../movements/movements.service';
+
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 
 @Injectable()
 export class ProductsService {
-  constructor(
-    private prisma: PrismaService,
-    private movementsService: MovementsService,
-  ) {}
+  constructor(private prisma: PrismaService) {}
   async create(data: CreateProductDto, userId: number) {
     let categoryId: number | undefined;
 
@@ -32,26 +29,26 @@ export class ProductsService {
         userId,
         name: data.name,
         description: data.description,
-        price: data.price,
-        quantity: 0,
         categoryId,
       },
-      include: { movements: true, category: true },
+      include: { category: true },
     });
 
-    if (data.quantity > 0) {
-      await this.movementsService.create({
-        userId,
-        productId: product.id,
-        quantity: data.quantity,
-        type: 'entrada',
-      });
-    }
-
     return {
-      ...product,
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      categoryId: product.categoryId,
+      userId: product.userId,
       category: product.category?.name ?? null,
     };
+  }
+
+  async findOne(id: number, userId: number) {
+    return this.prisma.product.findFirst({
+      where: { id, userId },
+      include: { category: true },
+    });
   }
 
   async findAll(userId: number) {
@@ -66,13 +63,7 @@ export class ProductsService {
     }));
   }
 
-  findOne(id: number, userId: number) {
-    return this.prisma.product.findFirst({
-      where: { id, userId },
-    });
-  }
-
-  async update(id: number, updateProductDto: UpdateProductDto, userId: number) {
+  async update(id: number, data: UpdateProductDto, userId: number) {
     const product = await this.prisma.product.findFirst({
       where: { id, userId },
     });
@@ -82,28 +73,29 @@ export class ProductsService {
     }
 
     let categoryId: number | undefined;
-    if (updateProductDto.category) {
+
+    if (data.category) {
       let category = await this.prisma.category.findUnique({
-        where: { name: updateProductDto.category },
+        where: { name: data.category },
       });
 
       if (!category) {
         category = await this.prisma.category.create({
-          data: { name: updateProductDto.category },
+          data: { name: data.category },
         });
       }
 
       categoryId = category.id;
     }
 
-    const dataToUpdate: any = { ...updateProductDto };
+    const dataToUpdate: any = { ...data };
     delete dataToUpdate.category;
     if (categoryId !== undefined) dataToUpdate.categoryId = categoryId;
 
     const updated = await this.prisma.product.update({
       where: { id },
       data: dataToUpdate,
-      include: { movements: true, category: true },
+      include: { category: true },
     });
 
     return {
@@ -118,11 +110,10 @@ export class ProductsService {
     });
 
     if (!product) {
-      throw new NotFoundException(
-        `Produto ${id} não encontrado para o usuário.`,
-      );
+      throw new NotFoundException('Produto não encontrado.');
     }
 
+    // Mantém isso caso depois você volte a usar movimentações
     await this.prisma.movement.deleteMany({
       where: { productId: id, userId },
     });
@@ -133,6 +124,7 @@ export class ProductsService {
   }
 
   async removeAll(userId: number) {
+    // Mesmo motivo acima
     await this.prisma.movement.deleteMany({ where: { userId } });
     return this.prisma.product.deleteMany({ where: { userId } });
   }
