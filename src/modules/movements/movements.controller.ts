@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -46,5 +47,11 @@ export class MovementsController {
   ) {
     const userId = (req.user as { id: number }).id;
     return this.movementsService.update(+id, updateMovementDto, userId);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string, @Req() req) {
+    const userId = (req.user as { id: number }).id;
+    return this.movementsService.remove(+id, userId);
   }
 }

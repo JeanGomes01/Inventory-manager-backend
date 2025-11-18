@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateMovementDto } from './dto/create-movement.dto';
 import { UpdateMovementDto } from './dto/update-movement.dto';
@@ -12,25 +8,14 @@ export class MovementsService {
   constructor(private prisma: PrismaService) {}
 
   async create(data: CreateMovementDto) {
-    const { productId, quantity, type, userId } = data;
+    const { userId, productName, quantity, price, type } = data;
 
-    const product = await this.prisma.product.findUnique({
-      where: { id: productId },
-    });
-
-    if (!product) {
-      throw new NotFoundException(`Produto ${productId} não encontrado.`);
+    if (!['entrada', 'saida'].includes(type.toLowerCase())) {
+      throw new BadRequestException('Tipo de movimentação inválido.');
     }
 
-    if (product.userId !== userId) {
-      throw new BadRequestException('Este produto não pertence ao usuário.');
-    }
-
-    const movementType = type.toLowerCase();
-
-    return this.prisma.movement.create({
-      data: { userId, productId, quantity, type: movementType },
-      include: { product: true },
+    return await this.prisma.movement.create({
+      data: { userId, productName, quantity, price, type: type.toLowerCase() },
     });
   }
 
@@ -38,20 +23,16 @@ export class MovementsService {
     return this.prisma.movement.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
-      include: { product: true },
     });
   }
 
   async findOne(id: number, userId: number) {
     const movement = await this.prisma.movement.findFirst({
       where: { id, userId },
-      include: { product: true },
     });
 
     if (!movement) {
-      throw new NotFoundException(
-        `Movimento ${id} não encontrado para o usuário.`,
-      );
+      throw new BadRequestException('Movimentação não encontrada.');
     }
 
     return movement;
@@ -63,14 +44,27 @@ export class MovementsService {
     });
 
     if (!movement) {
-      throw new NotFoundException(
-        `Movimento ${id} não encontrado para o usuário.`,
-      );
+      throw new BadRequestException('Movimentação não encontrada.');
     }
 
     return this.prisma.movement.update({
       where: { id },
       data,
     });
+  }
+
+  // 🔥 NOVO: DELETE
+  async remove(id: number, userId: number) {
+    const movement = await this.prisma.movement.findFirst({
+      where: { id, userId },
+    });
+
+    if (!movement) {
+      throw new BadRequestException('Movimentação não encontrada.');
+    }
+
+    await this.prisma.movement.delete({ where: { id } });
+
+    return { message: 'Movimentação removida com sucesso.' };
   }
 }
