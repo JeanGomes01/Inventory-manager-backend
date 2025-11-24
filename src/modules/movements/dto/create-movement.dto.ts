@@ -6,6 +6,9 @@ export class CreateMovementDto {
   userId: number;
 
   @ApiProperty()
+  productId: number;
+
+  @ApiProperty()
   productName: string;
 
   @ApiProperty()

@@ -24,7 +24,7 @@ export class MovementsController {
   @Post()
   create(@Body() createMovementDto: CreateMovementDto, @Req() req) {
     const userId = (req.user as { id: number }).id;
-    return this.movementsService.create({ ...createMovementDto, userId });
+    return this.movementsService.create(createMovementDto, userId);
   }
 
   @Get()

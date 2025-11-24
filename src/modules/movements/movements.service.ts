@@ -2,21 +2,56 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateMovementDto } from './dto/create-movement.dto';
 import { UpdateMovementDto } from './dto/update-movement.dto';
+import { MovementsType } from './types/movements-type.enum';
 
 @Injectable()
 export class MovementsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(data: CreateMovementDto) {
-    const { userId, productName, quantity, price, type } = data;
+  async create(data: CreateMovementDto, userId: number) {
+    const product = await this.prisma.product.findFirst({
+      where: {
+        id: data.productId,
+        userId,
+      },
+    });
 
-    if (!['entrada', 'saida'].includes(type.toLowerCase())) {
-      throw new BadRequestException('Tipo de movimentação inválido.');
+    if (!product) {
+      throw new BadRequestException('Produto não encontrado');
     }
 
-    return await this.prisma.movement.create({
-      data: { userId, productName, quantity, price, type: type.toLowerCase() },
+    let newQuantity = product.quantity;
+
+    if (data.type === MovementsType.ENTRADA) {
+      newQuantity += data.quantity;
+    }
+
+    if (data.type === MovementsType.SAIDA) {
+      if (product.quantity < data.quantity) {
+        throw new BadRequestException('Estoque insuficiente');
+      }
+      newQuantity -= data.quantity;
+    }
+
+    const movement = await this.prisma.movement.create({
+      data: {
+        userId,
+        productId: product.id,
+        productName: product.name,
+        type: data.type,
+        quantity: data.quantity,
+        price: data.price,
+      },
     });
+
+    await this.prisma.product.update({
+      where: { id: product.id },
+      data: {
+        quantity: newQuantity,
+      },
+    });
+
+    return movement;
   }
 
   findAll(userId: number) {
@@ -53,7 +88,6 @@ export class MovementsService {
     });
   }
 
-  // 🔥 NOVO: DELETE
   async remove(id: number, userId: number) {
     const movement = await this.prisma.movement.findFirst({
       where: { id, userId },

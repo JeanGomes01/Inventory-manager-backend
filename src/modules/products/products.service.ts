@@ -29,6 +29,7 @@ export class ProductsService {
         userId,
         name: data.name,
         description: data.description,
+        quantity: data.quantity ?? 0,
         categoryId,
       },
       include: { category: true },
@@ -38,6 +39,7 @@ export class ProductsService {
       id: product.id,
       name: product.name,
       description: product.description,
+      quantity: product.quantity,
       categoryId: product.categoryId,
       userId: product.userId,
       category: product.category?.name ?? null,
@@ -54,12 +56,13 @@ export class ProductsService {
   async findAll(userId: number) {
     const products = await this.prisma.product.findMany({
       where: { userId },
-      include: { movements: true, category: true },
+      include: { category: true },
     });
 
-    return products.map((p) => ({
-      ...p,
-      category: p.category?.name ?? null,
+    return products.map((product) => ({
+      ...product,
+      category: product.category?.name ?? null,
+      quantity: product.quantity,
     }));
   }
 
@@ -90,6 +93,7 @@ export class ProductsService {
 
     const dataToUpdate: any = { ...data };
     delete dataToUpdate.category;
+    delete dataToUpdate.quantity;
     if (categoryId !== undefined) dataToUpdate.categoryId = categoryId;
 
     const updated = await this.prisma.product.update({
@@ -113,7 +117,6 @@ export class ProductsService {
       throw new NotFoundException('Produto não encontrado.');
     }
 
-    // Mantém isso caso depois você volte a usar movimentações
     await this.prisma.movement.deleteMany({
       where: { productId: id, userId },
     });
@@ -124,7 +127,6 @@ export class ProductsService {
   }
 
   async removeAll(userId: number) {
-    // Mesmo motivo acima
     await this.prisma.movement.deleteMany({ where: { userId } });
     return this.prisma.product.deleteMany({ where: { userId } });
   }
