@@ -65,4 +65,10 @@ export class ProductsController {
     const userId = (req.user as { id: number }).id;
     return this.productsService.remove(parsedId, userId);
   }
+
+  @Delete('movements')
+  clearAllMovements(@Req() req) {
+    const userId = (req.user as { id: number }).id;
+    return this.productsService.clearAll(userId);
+  }
 }

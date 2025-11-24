@@ -130,4 +130,10 @@ export class ProductsService {
     await this.prisma.movement.deleteMany({ where: { userId } });
     return this.prisma.product.deleteMany({ where: { userId } });
   }
+
+  async clearAll(userId: number) {
+    return this.prisma.movement.deleteMany({
+      where: { userId },
+    });
+  }
 }
