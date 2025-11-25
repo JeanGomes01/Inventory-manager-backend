@@ -49,9 +49,9 @@ export class MovementsController {
     return this.movementsService.update(+id, updateMovementDto, userId);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string, @Req() req) {
+  @Delete()
+  removeAll(@Req() req) {
     const userId = (req.user as { id: number }).id;
-    return this.movementsService.remove(+id, userId);
+    return this.movementsService.removeAll(userId);
   }
 }

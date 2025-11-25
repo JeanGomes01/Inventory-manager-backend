@@ -88,17 +88,11 @@ export class MovementsService {
     });
   }
 
-  async remove(id: number, userId: number) {
-    const movement = await this.prisma.movement.findFirst({
-      where: { id, userId },
+  async removeAll(userId: number) {
+    await this.prisma.movement.deleteMany({
+      where: { userId },
     });
 
-    if (!movement) {
-      throw new BadRequestException('Movimentação não encontrada.');
-    }
-
-    await this.prisma.movement.delete({ where: { id } });
-
-    return { message: 'Movimentação removida com sucesso.' };
+    return { message: 'Histórico limpo com sucesso.' };
   }
 }
